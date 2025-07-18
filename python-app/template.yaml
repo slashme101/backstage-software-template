@@ -1,0 +1,64 @@
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: python-app
+  title: Python Application Template
+  description: A template for creating a Python application with a basic structure.
+spec:
+  owner: development
+  type: service
+
+  parameters:
+    - title: Fill in some steps
+      description: The name of the Python application.
+      required: 
+      - component_id
+      - environment
+      properties:
+        component_id:
+          type: string
+          title: Component name
+          description: Povide a component (microservice) name
+          pattern: '^([a-zA-Z][a-zA-Z0-9]*)(-[a-zA-Z0-9]+)*$'
+        environment:
+          type: string
+          title: Environment
+          description: Specify the environment for the application (e.g., development, staging, production)
+          enum:
+            - development
+            - staging
+            - production
+
+  steps:
+    - id: fetch-base
+      name: Fetch Base Template
+      input:
+        url: ./template
+        values:
+          app_name: ${{ parameters.component_id }}
+          app_env: ${{ parameters.environment }}
+
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        allowedHosts:
+          - github.com
+        description: This is ${{ parameters.component_id }}
+        repositoryUrl: github.com?owner=slashme101&repo=${{parameters.component_id}}
+        protectDefaultBranch: false
+        repoVisibility: public
+
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+        repoContentsurl: ${{ steps['publish'].output.repoContentsurl }}
+        catalogInfoPath: "/catalog-info.yaml"
+
+  output:
+    links:
+    - title: Repository
+      url: ${{ steps['publish'].output.remoteurl }}
